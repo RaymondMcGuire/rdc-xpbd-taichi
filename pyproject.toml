@@ -1,0 +1,19 @@
+[project]
+name = "taichi-xpbd"
+version = "0.1.0"
+description = "Taichi XPBD project with local meshtaichi_patcher integration"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+  "numpy",
+  "scipy",
+  "matplotlib",
+  "taichi==1.6.0",
+  "usd-core",
+  "meshtaichi-patcher",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+meshtaichi-patcher = { path = "third_party/meshtaichi_patcher", editable = true }

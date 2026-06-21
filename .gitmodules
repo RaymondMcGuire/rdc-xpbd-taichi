@@ -1,0 +1,3 @@
+[submodule "third_party/meshtaichi_patcher"]
+	path = third_party/meshtaichi_patcher
+	url = https://github.com/RaymondMcGuire/meshtaichi_patcher.git
