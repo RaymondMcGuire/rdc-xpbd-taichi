@@ -10,7 +10,7 @@ if not exist .venv\Scripts\python.exe (
   exit /b 1
 )
 
-uv run python run_neohookean_usd.py --model assets/tetmesh/cow.node --scale 1.5 --young 500000000 --arch gpu --dt 0.01 --fps 60 --frames 120 --substeps 1 --iterations 200 --block-neohookean --cheb --optimize-usd --streaming --use-binary
+uv run python run_neohookean_usd.py --model assets/tetmesh/cow.node --scale 1.5 --young 500000000 --arch gpu --dt 0.01 --fps 60 --frames 301 --substeps 1 --iterations 200 --block-neohookean --cheb --optimize-usd --streaming --use-binary
 if errorlevel 1 goto :fail
 
 echo.

@@ -1,5 +1,6 @@
 import taichi as ti
 import numpy as np
+from xpbd_gpu.constants import EPSILON
 
 
 @ti.data_oriented
@@ -37,7 +38,7 @@ class HangSdfModel(SdfModel):
     def dist(self, pos): # Function computing the signed distance field
         dist = 1e5
         for i in range(self.sphere_pos.shape[0]):
-            dist = min((pos - self.sphere_pos[i]).norm(1e-9) - self.sphere_radius, dist)
+            dist = min((pos - self.sphere_pos[i]).norm(EPSILON) - self.sphere_radius, dist)
         return dist
 
     @ti.func
@@ -45,10 +46,10 @@ class HangSdfModel(SdfModel):
         dist = 1e5
         normal = ti.Vector.zero(ti.f32, 3)
         for i in range(self.sphere_pos.shape[0]):
-            dist0 = (pos - self.sphere_pos[i]).norm(1e-9) - self.sphere_radius
+            dist0 = (pos - self.sphere_pos[i]).norm(EPSILON) - self.sphere_radius
             if dist0 < dist:
                 dist = dist0
-                normal = (pos - self.sphere_pos[0]).normalized(1e-9)
+                normal = (pos - self.sphere_pos[0]).normalized(EPSILON)
         return normal
     
     def render(self, scene):
@@ -88,7 +89,7 @@ class SphereSdf(SdfModel):
 
     @ti.func
     def normal(self, pos):
-        return (pos - self.center[None]).normalized(1e-9)
+        return (pos - self.center[None]).normalized(EPSILON)
 
     def render(self, scene):
         scene.particles(self.center, self.radius[None], color=(0, 1, 0))

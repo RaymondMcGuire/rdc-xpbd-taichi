@@ -1,14 +1,23 @@
-# Usage
+# RDC-XPBD Taichi
+
+Taichi implementation of a residual-driven Chebyshev accelerated Jacobi
+block Neo-Hookean XPBD solver.
+
+## Environment
+
+- Python `>=3.10,<3.11`
+- `uv` for dependency resolution and running commands
+- Taichi `1.6.0`
+- A modified MeshTaichi Patcher submodule for Taichi mesh metadata:
+  https://github.com/RaymondMcGuire/meshtaichi_patcher
+
+## Quickstart
 
 ```bat
 git clone --recursive https://github.com/RaymondMcGuire/rdc-xpbd-taichi.git
 cd rdc-xpbd-taichi
 scripts\init.bat
 scripts\demo.bat
-scripts\compare_convergence_armadillo.bat
 ```
 
-`scripts\demo.bat` writes a USD animation to `output\`.
-
-`scripts\compare_convergence_armadillo.bat` runs the Armadillo convergence
-comparison and writes the comparison plot to `output\compare_convergence_armadillo\`.
+The demo writes a USD animation to `output\`.

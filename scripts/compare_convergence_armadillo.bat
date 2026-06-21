@@ -21,15 +21,15 @@ echo Running Armadillo convergence comparison...
 echo.
 
 echo [1/4] NH
-uv run python run_neohookean_usd.py %COMMON_ARGS%
+uv run python run_neohookean_usd.py %COMMON_ARGS% --split-neohookean --no-cheb
 if errorlevel 1 goto :fail
 
 echo [2/4] NH-DC
-uv run python run_neohookean_usd.py %COMMON_ARGS% --cheb
+uv run python run_neohookean_usd.py %COMMON_ARGS% --split-neohookean --cheb
 if errorlevel 1 goto :fail
 
 echo [3/4] BNH
-uv run python run_neohookean_usd.py %COMMON_ARGS% --block-neohookean
+uv run python run_neohookean_usd.py %COMMON_ARGS% --block-neohookean --no-cheb
 if errorlevel 1 goto :fail
 
 echo [4/4] BNH-DC

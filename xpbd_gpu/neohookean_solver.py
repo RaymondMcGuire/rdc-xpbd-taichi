@@ -1,5 +1,6 @@
 import time
 import taichi as ti
+from xpbd_gpu.constants import EPSILON
 from xpbd_gpu.xpbd_base import XPBDSolverBase, calc_tet_volume
 
 
@@ -13,10 +14,6 @@ def calc_second_lame(E, nu):
 
 @ti.data_oriented
 class XPBDNeoHookeanSolver(XPBDSolverBase):
-    """
-    XPBD solver using neohookean constraints (deviatoric and hydrostatic preservation)
-    Chebyshev-accelerated Jacobi outer loop (CSI).
-    """
 
     def __init__(self,
                  rest_pose,
@@ -134,6 +131,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
     @ti.kernel
     def _chebyshev_update(self, omega: ti.f32):
         for v in self.mesh.verts:
+            # Algorithm I line 18 / Eq. (20): Chebyshev extrapolation.
             x_new = self.cheb_gamma * \
                 (v.pred_x - v.pred_x_curr) + v.pred_x_curr
             v.pred_x = v.pred_x_prev + omega * (x_new - v.pred_x_prev)
@@ -159,6 +157,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             Ds = ti.Matrix.cols([v1, v2, v3])
             F = Ds @ c.inv_Dm
 
+            # Eq. (9): split invariant constraints for the decoupled baseline.
             trFTF = F.norm_sqr()
             C = trFTF - 3.0
 
@@ -175,7 +174,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             w_sum += w2 * grad_2.dot(grad_2)
             w_sum += w3 * grad_3.dot(grad_3)
 
-            if w_sum > 1e-6:
+            if w_sum > EPSILON:
                 alpha_D = 1.0 / (self.lame2 * c.V0)
                 alpha_tilde = alpha_D / (dt ** 2)
 
@@ -210,6 +209,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             Ds = ti.Matrix.cols([v1, v2, v3])
             F = Ds @ c.inv_Dm
 
+            # Eq. (9): split invariant constraints for the decoupled baseline.
             detF = F.determinant()
             C = detF - 1.0
 
@@ -234,7 +234,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             w_sum += w2 * grad_2.dot(grad_2)
             w_sum += w3 * grad_3.dot(grad_3)
 
-            if w_sum > 1e-6:
+            if w_sum > EPSILON:
                 alpha_H = 1.0 / (self.lame1 * c.V0)
                 alpha_tilde = alpha_H / (dt ** 2)
 
@@ -311,6 +311,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             Ds = ti.Matrix.cols([v1, v2, v3])
             F = Ds @ c.inv_Dm
 
+            # Eq. (21)-(23): XPBD residual used by residual-driven Chebyshev.
             C_D = F.norm_sqr() - 3.0
             C_H = F.determinant() - 1.0
 
@@ -360,7 +361,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
         ti.mesh_local(self.mesh.verts.delta_x, self.mesh.verts.inv_m,
                       self.mesh.verts.pred_x)
 
-        eps_A = 1e-12
+        eps_A = EPSILON
         for c in self.mesh.cells:
             p0, p1, p2, p3 = c.verts[0], c.verts[1], c.verts[2], c.verts[3]
             w0, w1, w2, w3 = p0.inv_m, p1.inv_m, p2.inv_m, p3.inv_m
@@ -371,6 +372,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             Ds = ti.Matrix.cols([v1, v2, v3])
             F = Ds @ c.inv_Dm
 
+            # Algorithm I line 9 / Eq. (9): shifted hydrostatic/deviatoric constraints.
             trFTF = F.norm_sqr()
             C_D = trFTF - 3.0
 
@@ -421,6 +423,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             ok, dlamD, dlamH = self.solve2x2_pivot_lu(
                 A11, A12, A12, A22, b1, b2, eps_A)
             if ok == 0:
+                # Ill-conditioned 2x2 fallback: use diagonal scalar updates.
                 dlamD = 0.0
                 dlamH = 0.0
                 if ti.abs(A11) > eps_A:
@@ -431,6 +434,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             c.lambda_D += dlamD
             c.lambda_H += dlamH
 
+            # Algorithm I lines 11-12 / Eq. (6): update multipliers and accumulate dx.
             dp0 = w0 * (gD0 * dlamD + gH0 * dlamH)
             dp1 = w1 * (gD1 * dlamD + gH1 * dlamH)
             dp2 = w2 * (gD2 * dlamD + gH2 * dlamH)
@@ -450,17 +454,19 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
         compute_time_acc = 0.0
         setup_time_start = time.perf_counter()
 
+        # Algorithm I line 4: reset per-substep XPBD multipliers.
         self.mesh.cells.lambda_H.fill(0.0)
         self.mesh.cells.lambda_D.fill(0.0)
 
         self.prev_r_hat = None
 
-        self.solve_sdf_collision(dt)
+        self.solve_sdf_collision(dt)  # Algorithm I line 3.
 
         use_cheb = self.cheb_enable
         omega = 1.0
 
         if use_cheb:
+            # Algorithm I line 5: initialize y^(0) and y_prev.
             self._save_curr_to_prev()
 
         compute_time_acc += time.perf_counter() - setup_time_start
@@ -470,6 +476,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             iter_compute_start = time.perf_counter()
 
             if use_cheb:
+                # Algorithm I line 7: save y^(k) before the Chebyshev update.
                 self._save_curr_to_savebuf()
 
             self.pre_solve()
@@ -483,12 +490,13 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             self.post_solve()
 
             if use_cheb:
+                # Algorithm I lines 15-16 / Eq. (23)-(25): residual-driven rho.
                 self.compute_xpbd_residual(dt)
                 cnt = self.residual_count[None]
                 r_hat = self.residual_sum[None] / cnt if cnt > 0 else 0.0
 
-                if self.prev_r_hat is not None and self.prev_r_hat > 1e-12:
-                    rho_inst = r_hat / (self.prev_r_hat + 1e-12)
+                if self.prev_r_hat is not None and self.prev_r_hat > EPSILON:
+                    rho_inst = r_hat / (self.prev_r_hat + EPSILON)
                     rho_inst = max(self.rho_min, min(
                         self.rho_max, float(rho_inst)))
                     self.rho_hat = (1.0 - self.rho_beta) * \
@@ -526,6 +534,7 @@ class XPBDNeoHookeanSolver(XPBDSolverBase):
             if use_cheb:
                 iter_compute_start = time.perf_counter()
 
+                # Algorithm I line 17 / Eq. (26): recursive Chebyshev factor.
                 rho = float(self.rho_hat)
                 rho2 = rho * rho
 

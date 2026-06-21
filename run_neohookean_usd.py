@@ -27,16 +27,34 @@ parser.add_argument("--poisson", default=0.4999, type=float)
 parser.add_argument("--hydro-relax", default=1.2, type=float)
 parser.add_argument("--dev-relax", default=1.2, type=float)
 
-parser.add_argument(
+method_group = parser.add_mutually_exclusive_group()
+method_group.add_argument(
     "--block-neohookean",
+    dest="block_neohookean",
     action="store_true",
-    help="Use the block Neo-Hookean constraint solve",
+    default=True,
+    help="Use the block Neo-Hookean constraint solve (default)",
+)
+method_group.add_argument(
+    "--split-neohookean",
+    dest="block_neohookean",
+    action="store_false",
+    help="Use the decoupled split Neo-Hookean baseline",
 )
 
-parser.add_argument(
+cheb_group = parser.add_mutually_exclusive_group()
+cheb_group.add_argument(
     "--cheb",
+    dest="cheb",
     action="store_true",
-    help="Use dynamic Chebyshev acceleration",
+    default=True,
+    help="Use residual-driven dynamic Chebyshev acceleration (default)",
+)
+cheb_group.add_argument(
+    "--no-cheb",
+    dest="cheb",
+    action="store_false",
+    help="Disable dynamic Chebyshev acceleration",
 )
 parser.add_argument("--cheb-warmup", default=5, type=int)
 parser.add_argument("--cheb-gamma", default=0.666, type=float)

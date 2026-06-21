@@ -41,6 +41,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 
+from xpbd_gpu.constants import EPSILON
+
 
 # ----------------------------
 # Basic helpers
@@ -347,9 +349,8 @@ def best_cells(rows_raw: List[List[float]]) -> Set[Tuple[int, int]]:
         else:
             continue
 
-        tol = 1e-12
         for r, v in finite:
-            if abs(v - target) <= tol:
+            if abs(v - target) <= EPSILON:
                 best.add((r, c))
 
     return best

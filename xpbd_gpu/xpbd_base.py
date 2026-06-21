@@ -1,5 +1,6 @@
 import taichi as ti
 import meshtaichi_patcher as Patcher
+from xpbd_gpu.constants import EPSILON
 
 
 @ti.func
@@ -100,7 +101,7 @@ class XPBDSolverBase:
             vol = calc_tet_volume(c.verts[0].x, c.verts[1].x,
                                   c.verts[2].x, c.verts[3].x)
 
-            if vol <= 1e-12:
+            if vol <= EPSILON:
                 print(
                     f"Warning: Cell {c.id} has negative or zero volume; volume= {vol:.6f}")
 
@@ -139,6 +140,7 @@ class XPBDSolverBase:
     def apply_external_forces(self, dt: ti.f32):
         """Apply external forces (gravity) and predict positions"""
         for v0 in self.mesh.verts:
+            # Algorithm I line 2: predict y_tilde from x_n, v_n, and f_ext.
             if v0.inv_m > 0.0:
                 v0.v += self.gravity[None] * dt
             v0.pred_x = v0.x + v0.v * dt
@@ -150,7 +152,7 @@ class XPBDSolverBase:
             if v0.inv_m <= 0.0:
                 v0.pred_x = v0.x  # Fixed vertices don't move
             else:
-                # Calculate velocity from position change
+                # Algorithm I line 21: recover v_{n+1} from the projected position.
                 raw_v = (v0.pred_x - v0.x) / dt
                 # Apply exponential damping
                 v0.v = raw_v * ti.exp(-dt * damping)
