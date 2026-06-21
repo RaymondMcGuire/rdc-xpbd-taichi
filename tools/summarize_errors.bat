@@ -13,7 +13,7 @@ if not exist "..\.venv\Scripts\python.exe" (
 if "%~1"=="" (
   echo Usage:
   echo   %~nx0 path\to\json_or_directory --baseline-file baseline.json --format markdown
-  echo   %~nx0 "..\output\cow" --baseline-method "block_neohookean" --plot figure7_table.png
+  echo   %~nx0 "..\output\cow" --baseline-method "block_neohookean" --plot convergence_table.png
   echo.
   echo Notes:
   echo   - Recursively scans convergence JSON files.

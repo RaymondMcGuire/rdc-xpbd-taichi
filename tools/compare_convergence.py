@@ -313,8 +313,7 @@ def auto_generate_label(filepath, data):
     if isinstance(custom_label, str) and custom_label.strip():
         return custom_label.strip()
     elif 'config' in data and data['config'].get('cheb_enable'):
-        cheb_info = f"ρ={data['config'].get('cheb_rho', '?')}"
-        label = f"{solver_type} ({cheb_info})"
+        label = f"{solver_type} (dynamic Cheby)"
     else:
         label = f"{solver_type}"
 

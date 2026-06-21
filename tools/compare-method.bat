@@ -13,7 +13,7 @@ if not exist "..\.venv\Scripts\python.exe" (
 if "%~1"=="" (
   echo Usage:
   echo   %~nx0 data1.json data2.json [data3.json ...] [compare_convergence.py args]
-  echo   %~nx0 --pattern "..\output\cow\*\convergence_plots\*.json" --log --output figure7.png
+  echo   %~nx0 --pattern "..\output\cow\*\convergence_plots\*.json" --log --output convergence.png
   echo.
   echo Notes:
   echo   - Use JSON files exported by run_neohookean_usd.py with --plot-frames.
